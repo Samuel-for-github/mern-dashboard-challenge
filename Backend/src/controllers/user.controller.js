@@ -44,11 +44,11 @@ const registerUser = asyncHandler(async (req,res)=>{
     const profileImageLocalPath = req.file?.path
 
    const profileImage = await uploadOnCloudinary(profileImageLocalPath)
-    const pubicId = profileImage.public_id
+    const pubicId = profileImage?.public_id
    const user = await User.create({
        fullName,
-       profileImage: profileImage.url,
-       publicId: pubicId,
+       profileImage: profileImage?.url || "",
+       publicId: pubicId || "",
        email,
        password,
        username: username.toLowerCase()
@@ -129,5 +129,15 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
             new ApiResponse(200, {accessToken, refreshToken}, "Access token refreshed")
         )
 })
+const userInfo=asyncHandler(async (req, res)=>{
+    const user = await User.findById(req.user?._id).select("-password -publicId -refreshToken")
+    if (!user){
+        throw new ApiError(401, "User not found")
+    }
+    return res.status(200).json(
+        new ApiResponse(200, user, "User details")
+    )
+})
 
-export {registerUser, loginUser, logoutUser, refreshAccessToken}
+
+export {registerUser, loginUser, logoutUser, refreshAccessToken, userInfo}
