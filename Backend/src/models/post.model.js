@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2"
-import {User} from "./user.model.js";
+
 
 const postSchema = new mongoose.Schema({
     postFile:{
