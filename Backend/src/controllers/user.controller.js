@@ -138,6 +138,56 @@ const userInfo=asyncHandler(async (req, res)=>{
         new ApiResponse(200, user, "User details")
     )
 })
-
-
-export {registerUser, loginUser, logoutUser, refreshAccessToken, userInfo}
+const changePassword=asyncHandler(async (req,res)=>{
+    const {newPassword,oldPassword} = req.body
+    const user = await User.findById(req.user?._id)
+    const validatePassword = await user.comparePassword(oldPassword);
+    if(!validatePassword){
+        throw new ApiError(401, "Invalid password");
+    }
+    user.password=newPassword
+    await user.save({validateBeforeSave: false})
+    return res.status(200).json(
+        new ApiResponse(
+            200,null,"Password changed successfully"
+        )
+    )
+})
+const updateUserDetails=asyncHandler(async (req,res)=>{
+    const {fullName, email, username}=req.body
+    if (!(fullName && email && username)){
+        throw new ApiError(401, "All fields are require")
+    }
+  const user = await User.findByIdAndUpdate(req.user?._id, {
+      $set:{
+          fullName,
+          email,
+          username
+      }
+  }, {new:true}).select("-password -refreshToken")
+    return res.status(200).json(new ApiResponse(200, user, "User details updated"))
+})
+const updateUserProfileImage=asyncHandler(async (req, res)=>{
+    const profileImageLocalPath = req.file?.path
+    if(!profileImageLocalPath){
+        throw new ApiError(401, "No image local path");
+    }
+   const profileImage= await uploadOnCloudinary(profileImageLocalPath)
+    if(!profileImage.url){
+        throw new ApiError(401, "No image url");
+    }
+    const user =await User.findByIdAndUpdate(req.user?._id, {
+        $set:{
+            profileImage: profileImage.url,
+            publicId: profileImage.public_id
+        }
+    }, {new: true}).select("-password")
+    return res.status(200).json(new ApiResponse(200, user, "User profile image updated"))
+})
+const getMyPost=asyncHandler(async (req, res)=>{
+    const myPost = await User.findById(req.user?._id,{
+        post: 1
+    })
+    return res.status(200).json(new ApiResponse(200, myPost, "User Posts"))
+})
+export {registerUser,getMyPost, loginUser, logoutUser, refreshAccessToken, userInfo, changePassword, updateUserDetails, updateUserProfileImage}

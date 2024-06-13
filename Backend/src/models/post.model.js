@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2"
+import {User} from "./user.model.js";
 
 const postSchema = new mongoose.Schema({
     postFile:{
@@ -22,15 +23,11 @@ const postSchema = new mongoose.Schema({
         default: 0
     },
     owner:{
-    type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+    type: String,
     },
-    comments:[
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Comment',
-        }
-    ]
+    publicId:{
+        type: String
+    }
 }, {timestamps: true});
 
 postSchema.plugin(mongooseAggregatePaginate);
