@@ -5,6 +5,8 @@ import {User} from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/uploadCloudinary.js";
 import {option} from "../constants.js";
 import jwt from "jsonwebtoken";
+import {Post} from "../models/post.model.js";
+import mongoose from "mongoose";
 
 
 const generateAccessAndRefreshTokens = async (userId)=>{
@@ -185,9 +187,13 @@ const updateUserProfileImage=asyncHandler(async (req, res)=>{
     return res.status(200).json(new ApiResponse(200, user, "User profile image updated"))
 })
 const getMyPost=asyncHandler(async (req, res)=>{
-    const myPost = await User.findById(req.user?._id,{
-        post: 1
-    })
+
+    const myPost = await Post.aggregate([{
+     $match:{
+         owner: req.user._id,
+     }
+    }
+    ])
     return res.status(200).json(new ApiResponse(200, myPost, "User Posts"))
 })
 export {registerUser,getMyPost, loginUser, logoutUser, refreshAccessToken, userInfo, changePassword, updateUserDetails, updateUserProfileImage}

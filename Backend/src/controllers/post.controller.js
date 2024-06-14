@@ -22,7 +22,7 @@ const createPost=asyncHandler(async (req, res) => {
     const post = await Post.create({
         postFile: postImage?.url,
         publicId,
-        owner: req.user?.username,
+        owner: req.user?._id,
         title,
         description
     })
@@ -86,6 +86,11 @@ const updatePost=asyncHandler(async (req,res)=>{
     if(!updatePost){
         throw new ApiError(500, "Post update failed");
     }
+    await User.findByIdAndUpdate(req.user._id, {
+        $set:{
+            postId: updatePost._id
+        }
+    })
     return res.status(200).json(new ApiResponse(200, updatePost, "Post updated"))
 })
 export {createPost, getAllPosts, deletePost, updatePost}

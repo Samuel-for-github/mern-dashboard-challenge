@@ -23,7 +23,8 @@ const postSchema = new mongoose.Schema({
         default: 0
     },
     owner:{
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     },
     publicId:{
         type: String

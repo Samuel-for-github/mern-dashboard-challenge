@@ -1,23 +1,19 @@
 import mongoose from 'mongoose';
-import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2"
+
 
 const commentSchema = new mongoose.Schema({
     content:{
         type: String,
         required: true
     },
-    likes:{
-        type: Number,
-        default: 0
-    },
-    dislike:{
-        type: Number,
-        default: 0
-    },
     owner:{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
     },
+    post:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Post',
+    }
 }, {timestamps: true});
 
 
