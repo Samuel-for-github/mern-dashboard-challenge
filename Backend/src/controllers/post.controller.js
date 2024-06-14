@@ -12,10 +12,10 @@ const createPost=asyncHandler(async (req, res) => {
     }
     const postImageLocalPath = req.file?.path
     if(!postImageLocalPath){
-        throw new ApiError(400, "Please enter a valid postImageLocalPath");
+        throw new ApiError(400, "Please enter a valid Post Image Local Path");
     }
     const postImage = await uploadOnCloudinary(postImageLocalPath)
-    if(!postImage){
+    if(!postImage) {
         throw new ApiError(400, "No Post Image uploaded");
     }
     const publicId = postImage.public_id
@@ -47,6 +47,14 @@ const posts = await Post.find({})
 })
 const deletePost = asyncHandler(async (req, res)=>{
     const {postId}=req.params
+    if (!postId){
+        throw new ApiError(400, "No post id")
+    }
+
+    if(!req.user.post.includes(postId)){
+        throw new ApiError(403, "No post post found with id "+postId)
+    }
+
     await User.findByIdAndUpdate(req.user?._id, {
         $pull:{
             post: postId
@@ -55,18 +63,20 @@ const deletePost = asyncHandler(async (req, res)=>{
             score: req.user.score-10,
         }
     })
-    const deletePost=await Post.findByIdAndDelete(postId)
-    if(!deletePost){
+    const deleteP = await Post.findByIdAndDelete(postId)
+    if(!deleteP){
         throw new ApiError(500, "Post deletion failed")
     }
-    return res.status(200).json(new ApiResponse(200, deletePost, "Post deleted"))
+    return res.status(200).json(new ApiResponse(200, deleteP, "Post deleted successfully"))
 })
 const updatePost=asyncHandler(async (req,res)=>{
     const {postId} = req.params
     if (!postId){
         throw new ApiError(400, "No post id")
     }
-    console.log(req.body)
+    if(!req.user.post.includes(postId)){
+        throw new ApiError(403, "No post post found with id "+postId)
+    }
     const {title, description} = req.body
     if(!(title && description)){
         throw new ApiError(400, "All fields are required");
@@ -93,4 +103,92 @@ const updatePost=asyncHandler(async (req,res)=>{
     })
     return res.status(200).json(new ApiResponse(200, updatePost, "Post updated"))
 })
-export {createPost, getAllPosts, deletePost, updatePost}
+const likePost=asyncHandler(async (req,res)=>{
+    const {postId} = req.params
+    if(!postId){
+        throw new ApiError(400,"No post id")
+    }
+    const like = await Post.findByIdAndUpdate(postId, {
+        $inc:{
+            likes: 1
+        }
+    })
+
+    if(!like){
+        throw new ApiError(400,"Post like failed")
+    }
+    await User.findByIdAndUpdate(like.owner, {
+        $inc:{
+            score: 20
+        }
+    })
+    return res.status(200).json(new ApiResponse(200, like, "Post liked successfully"))
+
+})
+const unLikePost = asyncHandler(async (req,res)=>{
+    const {postId} = req.params
+    if(!postId){
+        throw new ApiError(400,"No post id")
+    }
+    const unLike = await Post.findByIdAndUpdate(postId, {
+        $inc:{
+            likes: -1
+        }
+    })
+
+    if(!unLike){
+        throw new ApiError(400,"Post like failed")
+    }
+    await User.findByIdAndUpdate(unLike.owner, {
+        $inc:{
+            score: -20
+        }
+    })
+    return res.status(200).json(new ApiResponse(200, unLike, "Post unliked successfully"))
+
+})
+const dislikePost=asyncHandler(async (req,res)=>{
+    const {postId} = req.params
+    if(!postId){
+        throw new ApiError(400,"No post id")
+    }
+    const dislike = await Post.findByIdAndUpdate(postId, {
+        $inc:{
+            dislikes: 1
+        }
+    })
+
+    if(!dislike){
+        throw new ApiError(400,"Post dislike failed")
+    }
+    await User.findByIdAndUpdate(dislike.owner, {
+        $inc:{
+            score: -5
+        }
+    })
+    return res.status(200).json(new ApiResponse(200, dislike, "Post disliked successfully"))
+
+})
+const unDislikePost=asyncHandler(async (req,res)=>{
+    const {postId} = req.params
+    if(!postId){
+        throw new ApiError(400,"No post id")
+    }
+    const unDislike = await Post.findByIdAndUpdate(postId, {
+        $inc:{
+            dislikes: -1
+        }
+    })
+
+    if(!unDislike){
+        throw new ApiError(400,"Post dislike failed")
+    }
+    await User.findByIdAndUpdate(unDislike.owner, {
+        $inc:{
+            score: 5
+        }
+    })
+    return res.status(200).json(new ApiResponse(200, unDislike, "Post un-disliked successfully"))
+
+})
+export {createPost, getAllPosts, deletePost, updatePost,likePost, unLikePost, dislikePost, unDislikePost }

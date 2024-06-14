@@ -8,6 +8,6 @@ router.use(verifyJWT)
 router.route("/create-comment/:postId").post(createComment)
 router.route("/post-comment/:postId").get(getPostsComment)
 router.route("/delete-comment/:commentId").delete(deleteComment)
-router.route("/update-post/:commentId").patch(updateComment)
+router.route("/update-comment/:commentId").patch(updateComment)
 
 export default router;

@@ -3,7 +3,6 @@ import {ApiError} from "../utils/ApiError.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
 import {User} from "../models/user.model.js";
 import {Comment} from "../models/comment.model.js";
-import {Post} from "../models/post.model.js";
 import mongoose from "mongoose";
 
 const createComment=asyncHandler(async (req, res) => {
@@ -66,6 +65,7 @@ const updateComment=asyncHandler(async (req,res)=>{
     if (!commentId){
         throw new ApiError(400, "No comment id")
     }
+    const user = await Comment.findById(commentId)
     if (user.owner.toString() !== req.user._id.toString()){
         throw new ApiError(400, "Unauthorized request")
     }
