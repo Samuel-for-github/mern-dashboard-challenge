@@ -4,6 +4,7 @@ import {ApiResponse} from "../utils/ApiResponse.js";
 import {User} from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/uploadCloudinary.js";
 import {Post} from "../models/post.model.js";
+import {deleteOnCloudinary} from "../utils/deleteCloudinary.js";
 
 const createPost=asyncHandler(async (req, res) => {
     const {title, description} = req.body;
@@ -55,6 +56,8 @@ const deletePost = asyncHandler(async (req, res)=>{
         throw new ApiError(403, "No post post found with id "+postId)
     }
 
+
+
     await User.findByIdAndUpdate(req.user?._id, {
         $pull:{
             post: postId
@@ -63,7 +66,14 @@ const deletePost = asyncHandler(async (req, res)=>{
             score: req.user.score-10,
         }
     })
+
+
+
     const deleteP = await Post.findByIdAndDelete(postId)
+   const cloud = await deleteOnCloudinary(deleteP.publicId)
+    if(!cloud){
+        throw new ApiError(403, "No post deleted on cloud"+deleteP.publicId)
+    }
     if(!deleteP){
         throw new ApiError(500, "Post deletion failed")
     }
@@ -93,8 +103,13 @@ const updatePost=asyncHandler(async (req,res)=>{
     const updatePost=await Post.findByIdAndUpdate(postId,{
         title,description,postFile: postImage.url,publicId
     })
+
     if(!updatePost){
         throw new ApiError(500, "Post update failed");
+    }
+    const cloud = await deleteOnCloudinary(updatePost.publicId)
+    if(!cloud){
+        throw new ApiError(403, "No post deleted on cloud"+updatePost.publicId)
     }
     await User.findByIdAndUpdate(req.user._id, {
         $set:{
