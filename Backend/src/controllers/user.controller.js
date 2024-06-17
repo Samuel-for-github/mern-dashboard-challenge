@@ -6,7 +6,7 @@ import {uploadOnCloudinary} from "../utils/uploadCloudinary.js";
 import {option} from "../constants.js";
 import jwt from "jsonwebtoken";
 import {Post} from "../models/post.model.js";
-import mongoose from "mongoose";
+
 
 
 const generateAccessAndRefreshTokens = async (userId)=>{
