@@ -59,7 +59,7 @@ const registerUser = asyncHandler(async (req,res)=>{
    })
     const createdUser = await User.findById(user._id).select("-password -refreshToken")
    if (!createdUser){
-       throw new ApiError(500, "Something Went Wrong while creating the user");
+       new ApiResponse(409,null,"Something Went Wrong while creating the new user")
    }
     return res.status(200).json(
         new ApiResponse(200, user,"User registered successfully.")
@@ -69,17 +69,17 @@ const registerUser = asyncHandler(async (req,res)=>{
 const loginUser = asyncHandler(async (req,  res)=>{
     const {username, password, email} = req.body
     if(!(username || email )){
-    throw new ApiError(400, "Please enter a username or email");
+        new ApiResponse(400, null,"Please enter a username or email")
     }
     const userExist = await User.findOne({
         $or: [{username}, {email}]
     })
     if (!userExist){
-        throw new ApiError(400, "User does not exists");
+        new ApiResponse(400, null,"User does not exists.")
     }
    const validUser = await userExist.comparePassword(password)
     if(!validUser){
-        throw new ApiError(401, "Password is incorrect");
+        new ApiResponse(401, null,"Password is incorrect")
     }
 
 const {accessToken, refreshToken} =  await generateAccessAndRefreshTokens(userExist._id)
@@ -114,15 +114,15 @@ const logoutUser = asyncHandler(async (req,res)=>{
 const refreshAccessToken = asyncHandler(async (req,res)=>{
     const incomingRefreshToken = req.cookies.refreshToken|| req.body.refreshToken
     if(!incomingRefreshToken){
-        throw new ApiError(401, "Unauthorised request")
+        new ApiResponse(401, null,"Unauthorised request")
     }
    const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
     const user=await User.findById(decodedToken?._id)
     if (!user){
-        throw new ApiError(401, "User not found")
+        new ApiResponse(401, null,"User not found")
     }
     if (incomingRefreshToken!==user?.refreshToken){
-        throw new ApiError(401, "Refresh token is expired or used")
+        new ApiResponse(401, null,"Refresh token is expired or used")
     }
    const {accessToken, refreshToken}= await generateAccessAndRefreshTokens(user._id)
     return res
@@ -136,7 +136,7 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
 const userInfo=asyncHandler(async (req, res)=>{
     const user = await User.findById(req.user?._id).select("-password -publicId -refreshToken")
     if (!user){
-        throw new ApiError(401, "User not found")
+        new ApiResponse(401, null,"User not found")
     }
     return res.status(200).json(
         new ApiResponse(200, user, "User details")
@@ -147,7 +147,7 @@ const changePassword=asyncHandler(async (req,res)=>{
     const user = await User.findById(req.user?._id)
     const validatePassword = await user.comparePassword(oldPassword);
     if(!validatePassword){
-        throw new ApiError(401, "Invalid password");
+        new ApiResponse(401, null,"Invalid password")
     }
     user.password=newPassword
     await user.save({validateBeforeSave: false})
@@ -160,7 +160,7 @@ const changePassword=asyncHandler(async (req,res)=>{
 const updateUserDetails=asyncHandler(async (req,res)=>{
     const {fullName, email, username}=req.body
     if (!(fullName && email && username)){
-        throw new ApiError(401, "All fields are require")
+        new ApiResponse(401, null,"All fields are require")
     }
   const user = await User.findByIdAndUpdate(req.user?._id, {
       $set:{
@@ -174,11 +174,11 @@ const updateUserDetails=asyncHandler(async (req,res)=>{
 const updateUserProfileImage=asyncHandler(async (req, res)=>{
     const profileImageLocalPath = req.file?.path
     if(!profileImageLocalPath){
-        throw new ApiError(401, "No image local path");
+        new ApiResponse(401, null,"No image local path")
     }
    const profileImage= await uploadOnCloudinary(profileImageLocalPath)
     if(!profileImage.url){
-        throw new ApiError(401, "No image url");
+        new ApiResponse(401, null,"No image url")
     }
     const user =await User.findByIdAndUpdate(req.user?._id, {
         $set:{

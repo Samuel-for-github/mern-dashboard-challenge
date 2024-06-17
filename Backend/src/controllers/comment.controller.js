@@ -8,8 +8,8 @@ import mongoose from "mongoose";
 const createComment=asyncHandler(async (req, res) => {
     const {content} = req.body
     const {postId} = req.params
-    if(!(content)){
-        throw new ApiError(400, "All fields are required");
+    if(!content){
+        new ApiResponse(400, null,"All fields are required")
     }
     const comment = await Comment.create({
       content,
@@ -17,7 +17,7 @@ const createComment=asyncHandler(async (req, res) => {
         post: postId
     })
     if(!comment){
-        throw new ApiError(400, "No comment uploaded");
+        new ApiResponse(400, null,"No comment uploaded");
     }
 
     await User.findByIdAndUpdate(req.user?._id,{
@@ -41,17 +41,17 @@ const getPostsComment=asyncHandler(async (req, res)=>{
 const deleteComment = asyncHandler(async (req, res)=>{
     const {commentId}=req.params
     if(!commentId){
-        throw new ApiError(400, "No comment id")
+        new ApiResponse(400, null,"No comment id")
     }
     const user = await Comment.findById(commentId)
     if (user.owner.toString() !== req.user._id.toString()){
-        throw new ApiError(400, "Unauthorized request")
+        new ApiResponse(400, null,"Unauthorised request");
     }
 
     const comment=await Comment.findByIdAndDelete(commentId)
 
     if(!comment){
-        throw new ApiError(500, "Comment deletion failed")
+        new ApiResponse(500, null,"Comment deletion failed")
     }
     await User.findByIdAndUpdate(req.user?._id,{
         $set:{
@@ -63,21 +63,22 @@ const deleteComment = asyncHandler(async (req, res)=>{
 const updateComment=asyncHandler(async (req,res)=>{
     const {commentId} = req.params
     if (!commentId){
+        new ApiResponse(400, null,"No comment id")
         throw new ApiError(400, "No comment id")
     }
     const user = await Comment.findById(commentId)
     if (user.owner.toString() !== req.user._id.toString()){
-        throw new ApiError(400, "Unauthorized request")
+        new ApiResponse(400, null,"Unauthorised request")
     }
     const {content} = req.body
     if(!content){
-        throw new ApiError(400, "Provide some content");
+        new ApiResponse(400, null,"Provide some content")
     }
     const comment=await Comment.findByIdAndUpdate(commentId,{
         content
     })
     if(!comment){
-        throw new ApiError(500, "Comment update failed");
+        new ApiResponse(400, null,"Comment update failed")
     }
     return res.status(200).json(new ApiResponse(200, comment, "Comment updated"))
 })
