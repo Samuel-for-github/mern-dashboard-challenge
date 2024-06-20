@@ -72,7 +72,7 @@ const loginUser = asyncHandler(async (req,  res)=>{
     const {username, password, email} = req.body
     if(!(username || email )){
         res.status(409).json(
-        new ApiResponse(400, null,"Please enter a username or email")
+            new ApiError(409,"Please enter a username or email")
         )
     }
     const userExist = await User.findOne({
