@@ -41,7 +41,7 @@ const registerUser = asyncHandler(async (req,res)=>{
     })
 
     if(userExist){
-        res.status(409).json(
+        res.status(409).send(
             new ApiError(409,"User already existed")
         )
     }
