@@ -41,8 +41,8 @@ const registerUser = asyncHandler(async (req,res)=>{
     })
 
     if(userExist){
-        res.status(409).json(
-            new ApiResponse(409,null,"User already exist")
+        res.status(409).end(
+            throw new ApiError(409,"User already existed")
         )
     }
     const profileImageLocalPath = req.file?.path
