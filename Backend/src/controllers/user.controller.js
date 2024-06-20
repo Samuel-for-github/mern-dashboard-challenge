@@ -59,7 +59,9 @@ const registerUser = asyncHandler(async (req,res)=>{
    })
     const createdUser = await User.findById(user._id).select("-password -refreshToken")
    if (!createdUser){
+       res.status(409).json(
        new ApiResponse(409,null,"Something Went Wrong while creating the new user")
+       )
    }
     return res.status(200).json(
         new ApiResponse(200, user,"User registered successfully.")
@@ -69,17 +71,23 @@ const registerUser = asyncHandler(async (req,res)=>{
 const loginUser = asyncHandler(async (req,  res)=>{
     const {username, password, email} = req.body
     if(!(username || email )){
+        res.status(409).json(
         new ApiResponse(400, null,"Please enter a username or email")
+        )
     }
     const userExist = await User.findOne({
         $or: [{username}, {email}]
     })
     if (!userExist){
+        res.status(409).json(
         new ApiResponse(400, null,"User does not exists.")
+        )
     }
    const validUser = await userExist.comparePassword(password)
     if(!validUser){
+        res.status(409).json(
         new ApiResponse(401, null,"Password is incorrect")
+        )
     }
 
 const {accessToken, refreshToken} =  await generateAccessAndRefreshTokens(userExist._id)
@@ -114,16 +122,23 @@ const logoutUser = asyncHandler(async (req,res)=>{
 const refreshAccessToken = asyncHandler(async (req,res)=>{
     const incomingRefreshToken = req.cookies.refreshToken|| req.body.refreshToken
     if(!incomingRefreshToken){
+        res.status(409).json(
         new ApiResponse(401, null,"Unauthorised request")
+        )
     }
    const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
     const user=await User.findById(decodedToken?._id)
     if (!user){
+        res.status(401).json(
         new ApiResponse(401, null,"User not found")
+        )
     }
     if (incomingRefreshToken!==user?.refreshToken){
+        res.status(401).json(
         new ApiResponse(401, null,"Refresh token is expired or used")
+        )
     }
+
    const {accessToken, refreshToken}= await generateAccessAndRefreshTokens(user._id)
     return res
         .status(200)
@@ -136,7 +151,9 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
 const userInfo=asyncHandler(async (req, res)=>{
     const user = await User.findById(req.user?._id).select("-password -publicId -refreshToken")
     if (!user){
+        res.status(401).json(
         new ApiResponse(401, null,"User not found")
+        )
     }
     return res.status(200).json(
         new ApiResponse(200, user, "User details")
@@ -146,8 +163,9 @@ const changePassword=asyncHandler(async (req,res)=>{
     const {newPassword,oldPassword} = req.body
     const user = await User.findById(req.user?._id)
     const validatePassword = await user.comparePassword(oldPassword);
-    if(!validatePassword){
+    if(!validatePassword){res.status(401).json(
         new ApiResponse(401, null,"Invalid password")
+    )
     }
     user.password=newPassword
     await user.save({validateBeforeSave: false})
