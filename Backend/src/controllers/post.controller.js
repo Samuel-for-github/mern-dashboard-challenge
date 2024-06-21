@@ -1,211 +1,210 @@
-import {asyncHandler} from "../utils/asyncHandler.js";
-import {ApiError} from "../utils/ApiError.js";
-import {ApiResponse} from "../utils/ApiResponse.js";
-import {User} from "../models/user.model.js";
-import {uploadOnCloudinary} from "../utils/uploadCloudinary.js";
-import {Post} from "../models/post.model.js";
-import {deleteOnCloudinary} from "../utils/deleteCloudinary.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { User } from "../models/user.model.js";
+import { uploadOnCloudinary } from "../utils/uploadCloudinary.js";
+import { Post } from "../models/post.model.js";
+import { deleteOnCloudinary } from "../utils/deleteCloudinary.js";
 
-const createPost=asyncHandler(async (req, res) => {
-    const {title, description} = req.body;
-    if(!(title && description)){
-        throw new ApiError(400, "All fields are required");
+const createPost = asyncHandler(async (req, res) => {
+    const { title, description } = req.body;
+    if (!(title && description)) {
+        return res.status(400).send(new ApiError(400, "All fields are required"));
     }
-    const postImageLocalPath = req.file?.path
-    if(!postImageLocalPath){
-        new ApiResponse(401, null,"Please enter a valid Post Image Local Path")
+    const postImageLocalPath = req.file?.path;
+    if (!postImageLocalPath) {
+        return res.status(400).send(new ApiError(400, "Please enter a valid Post Image Local Path"));
     }
-    const postImage = await uploadOnCloudinary(postImageLocalPath)
-    if(!postImage) {
-        new ApiResponse(401, null,"No Post Image uploaded")
+    const postImage = await uploadOnCloudinary(postImageLocalPath);
+    if (!postImage) {
+        return res.status(400).send(new ApiError(400, "No Post Image uploaded"));
     }
-    const publicId = postImage.public_id
+    const publicId = postImage.public_id;
     const post = await Post.create({
         postFile: postImage?.url,
         publicId,
         owner: req.user?._id,
         title,
         description
-    })
-    if(!post){
-        new ApiResponse(401, null,"No post uploaded")
+    });
+    if (!post) {
+        return res.status(400).send(new ApiError(400, "No post uploaded"));
     }
-
-    await User.findByIdAndUpdate(req.user?._id,{
-        $set:{
-            score: req.user.score+10,
-        },
-        $addToSet:{
-            post: post._id
-        }
-    },{new: true})
-
-    return res.status(200).json(new ApiResponse(200, post, "Post created"))
-})
-const getAllPosts=asyncHandler(async (req, res)=>{
-const posts = await Post.find({})
-    return res.status(200).json(new ApiResponse(200, posts, "All posts"))
-})
-const deletePost = asyncHandler(async (req, res)=>{
-    const {postId}=req.params
-    if (!postId){
-        new ApiResponse(400, null,"No post id")
-    }
-
-    if(!req.user.post.includes(postId)){
-        new ApiResponse(401, null,"No post found")
-    }
-
-
 
     await User.findByIdAndUpdate(req.user?._id, {
-        $pull:{
+        $set: {
+            score: req.user.score + 10,
+        },
+        $addToSet: {
+            post: post._id
+        }
+    }, { new: true });
+
+    return res.status(200).json(new ApiResponse(200, post, "Post created"));
+});
+
+const getAllPosts = asyncHandler(async (req, res) => {
+    const posts = await Post.find({});
+    return res.status(200).json(new ApiResponse(200, posts, "All posts"));
+});
+
+const deletePost = asyncHandler(async (req, res) => {
+    const { postId } = req.params;
+    if (!postId) {
+        return res.status(400).send(new ApiError(400, "No post id"));
+    }
+
+    if (!req.user.post.includes(postId)) {
+        return res.status(403).send(new ApiError(403, "No post found with id " + postId));
+    }
+
+    const deleteP = await Post.findByIdAndDelete(postId);
+    const cloud = await deleteOnCloudinary(deleteP.publicId);
+    if (!cloud) {
+        return res.status(403).send(new ApiError(403, "No post deleted on cloud " + deleteP.publicId));
+    }
+    if (!deleteP) {
+        return res.status(500).send(new ApiError(500, "Post deletion failed"));
+    }
+
+    await User.findByIdAndUpdate(req.user?._id, {
+        $pull: {
             post: postId
         },
-        $set:{
-            score: req.user.score-10,
+        $set: {
+            score: req.user.score - 10,
         }
-    })
+    });
 
+    return res.status(200).json(new ApiResponse(200, deleteP, "Post deleted successfully"));
+});
 
+const updatePost = asyncHandler(async (req, res) => {
+    const { postId } = req.params;
+    if (!postId) {
+        return res.status(400).send(new ApiError(400, "No post id"));
+    }
+    if (!req.user.post.includes(postId)) {
+        return res.status(403).send(new ApiError(403, "No post found with id " + postId));
+    }
+    const { title, description } = req.body;
+    if (!(title && description)) {
+        return res.status(400).send(new ApiError(400, "All fields are required"));
+    }
+    const postImageLocalPath = req.file?.path;
+    if (!postImageLocalPath) {
+        return res.status(400).send(new ApiError(400, "Please enter a valid postImageLocalPath"));
+    }
+    const postImage = await uploadOnCloudinary(postImageLocalPath);
+    if (!postImage) {
+        return res.status(400).send(new ApiError(400, "No Post Image uploaded"));
+    }
+    const publicId = postImage?.public_id;
+    const updatedPost = await Post.findByIdAndUpdate(postId, {
+        title, description, postFile: postImage.url, publicId
+    }, { new: true });
 
-    const deleteP = await Post.findByIdAndDelete(postId)
-   const cloud = await deleteOnCloudinary(deleteP.publicId)
-    if(!cloud){
-        new ApiResponse(401, null,"No post deleted on cloudinary ")
+    if (!updatedPost) {
+        return res.status(500).send(new ApiError(500, "Post update failed"));
     }
-    if(!deleteP){
-        new ApiResponse(401, null,"Post deletion failed")
-    }
-    return res.status(200).json(new ApiResponse(200, deleteP, "Post deleted successfully"))
-})
-const updatePost=asyncHandler(async (req,res)=> {
-    const {postId} = req.params
-    if (!postId){
-
-        throw new ApiError(400, "No post id")
-    }
-    if(!req.user.post.includes(postId)){
-        new ApiResponse(400, null,"No post id")
-    }
-    const {title, description} = req.body
-    if(!(title && description)){
-        new ApiResponse(400, null,"All fields are required")
-    }
-    const postImageLocalPath = req.file?.path
-    if(!postImageLocalPath){
-        new ApiResponse(400, null,"Please enter a valid post image local path")
-    }
-    const postImage = await uploadOnCloudinary(postImageLocalPath)
-    if(!postImage){
-        new ApiResponse(400, null,"No post image uploaded")
-    }
-    const publicId = postImage?.public_id
-    const updatePost=await Post.findByIdAndUpdate(postId,{
-        title,description,postFile: postImage.url,publicId
-    })
-
-    if(!updatePost){
-        new ApiResponse(400, null,"No post updated")
-    }
-    const cloud = await deleteOnCloudinary(updatePost.publicId)
-    if(!cloud){
-        new ApiResponse(403, null,"No post deleted on cloudinary")
+    const cloud = await deleteOnCloudinary(updatedPost.publicId);
+    if (!cloud) {
+        return res.status(403).send(new ApiError(403, "No post deleted on cloud " + updatedPost.publicId));
     }
     await User.findByIdAndUpdate(req.user._id, {
-        $set:{
-            postId: updatePost._id
+        $set: {
+            postId: updatedPost._id
         }
-    })
-    return res.status(200).json(new ApiResponse(200, updatePost, "Post updated"))
-})
+    });
+    return res.status(200).json(new ApiResponse(200, updatedPost, "Post updated"));
+});
 
-const likePost=asyncHandler(async (req,res)=>{
-    const {postId} = req.params
-    if(!postId){
-        new ApiResponse(400, null,"No post id")
+const likePost = asyncHandler(async (req, res) => {
+    const { postId } = req.params;
+    if (!postId) {
+        return res.status(400).send(new ApiError(400, "No post id"));
     }
     const like = await Post.findByIdAndUpdate(postId, {
-        $inc:{
+        $inc: {
             likes: 1
         }
-    })
+    }, { new: true });
 
-    if(!like){
-        new ApiResponse(400, null,"Post like failed")
+    if (!like) {
+        return res.status(400).send(new ApiError(400, "Post like failed"));
     }
     await User.findByIdAndUpdate(like.owner, {
-        $inc:{
+        $inc: {
             score: 20
         }
-    })
-    return res.status(200).json(new ApiResponse(200, like, "Post liked successfully"))
+    });
+    return res.status(200).json(new ApiResponse(200, like, "Post liked successfully"));
+});
 
-})
-const unLikePost = asyncHandler(async (req,res)=>{
-    const {postId} = req.params
-    if(!postId){
-        new ApiResponse(400, null,"No post id")
+const unLikePost = asyncHandler(async (req, res) => {
+    const { postId } = req.params;
+    if (!postId) {
+        return res.status(400).send(new ApiError(400, "No post id"));
     }
     const unLike = await Post.findByIdAndUpdate(postId, {
-        $inc:{
+        $inc: {
             likes: -1
         }
-    })
+    }, { new: true });
 
-    if(!unLike){
-        new ApiResponse(400, null,"Post unlike falied")
+    if (!unLike) {
+        return res.status(400).send(new ApiError(400, "Post unlike failed"));
     }
     await User.findByIdAndUpdate(unLike.owner, {
-        $inc:{
+        $inc: {
             score: -20
         }
-    })
-    return res.status(200).json(new ApiResponse(200, unLike, "Post unliked successfully"))
+    });
+    return res.status(200).json(new ApiResponse(200, unLike, "Post unliked successfully"));
+});
 
-})
-const dislikePost=asyncHandler(async (req,res)=>{
-    const {postId} = req.params
-    if(!postId){
-        new ApiResponse(400, null,"No post id")
+const dislikePost = asyncHandler(async (req, res) => {
+    const { postId } = req.params;
+    if (!postId) {
+        return res.status(400).send(new ApiError(400, "No post id"));
     }
     const dislike = await Post.findByIdAndUpdate(postId, {
-        $inc:{
+        $inc: {
             dislikes: 1
         }
-    })
+    }, { new: true });
 
-    if(!dislike){
-        new ApiResponse(400, null,"Post dislike failed")
+    if (!dislike) {
+        return res.status(400).send(new ApiError(400, "Post dislike failed"));
     }
     await User.findByIdAndUpdate(dislike.owner, {
-        $inc:{
+        $inc: {
             score: -5
         }
-    })
-    return res.status(200).json(new ApiResponse(200, dislike, "Post disliked successfully"))
+    });
+    return res.status(200).json(new ApiResponse(200, dislike, "Post disliked successfully"));
+});
 
-})
-const unDislikePost=asyncHandler(async (req,res)=>{
-    const {postId} = req.params
-    if(!postId){
-        new ApiResponse(400, null,"No post id")
+const unDislikePost = asyncHandler(async (req, res) => {
+    const { postId } = req.params;
+    if (!postId) {
+        return res.status(400).send(new ApiError(400, "No post id"));
     }
     const unDislike = await Post.findByIdAndUpdate(postId, {
-        $inc:{
+        $inc: {
             dislikes: -1
         }
-    })
+    }, { new: true });
 
-    if(!unDislike){
-        new ApiResponse(400, null,"Post unDislike failed")
+    if (!unDislike) {
+        return res.status(400).send(new ApiError(400, "Post undislike failed"));
     }
     await User.findByIdAndUpdate(unDislike.owner, {
-        $inc:{
+        $inc: {
             score: 5
         }
-    })
-    return res.status(200).json(new ApiResponse(200, unDislike, "Post un-disliked successfully"))
+    });
+    return res.status(200).json(new ApiResponse(200, unDislike, "Post undisliked successfully"));
+});
 
-})
-export {createPost, getAllPosts, deletePost, updatePost,likePost, unLikePost, dislikePost, unDislikePost }
+export { createPost, getAllPosts, deletePost, updatePost, likePost, unLikePost, dislikePost, unDislikePost };
