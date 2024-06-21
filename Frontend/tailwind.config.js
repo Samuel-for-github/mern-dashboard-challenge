@@ -33,6 +33,10 @@ module.exports = {
         'light-2': '#EFEFEF',
         'light-3': '#7878A3',
         'light-4': '#5C5C7B',
+        'main': '#F7695E',
+        'secondary': '#F4D479',
+        'primary': '#E668D2',
+        'tertiary': '#71B5E5',
       },
       screens: {
         'xs': '480px',
