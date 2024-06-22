@@ -13,14 +13,14 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import {signUpValidation} from "@/lib/validation";
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 import {useState} from "react";
+import toast from "react-hot-toast";
 
 
 
 
-
-function Signupform() {
+function SignUpForm() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const form = useForm<z.infer<typeof signUpValidation>>({
@@ -32,22 +32,25 @@ function Signupform() {
             username: "",
         },
     })
+    const navigate = useNavigate();
     // 2. Define a submit handler.
     async function onSubmit(values: z.infer<typeof signUpValidation>) {
-        console.log("hi")
+
 try{
-    console.log(values)
     setLoading(true)
-    const data = await axios.post(`https://localhost:3000/api/v1/users/register`,values)
-    console.log(data)
+    const data = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/users/register`,values)
+    toast.success(data.data.message)
     setError("")
+    navigate("/sign-in")
 }catch(e:any){
     setLoading(false)
     console.log(e)
+    toast.error("User Registration Failed")
     setError(e.response.data.messages)
 }
 finally {
     setLoading(false)
+
 }
     }
 
@@ -82,7 +85,7 @@ finally {
                                     <FormControl>
                                         <Input className="shad-input" type="text" {...field} />
                                     </FormControl>
-                                    <FormMessage/>
+
                                     <p>{error}</p>
                                 </FormItem>
                             )}
@@ -96,7 +99,6 @@ finally {
                                     <FormControl>
                                         <Input className="shad-input" type="email" {...field} />
                                     </FormControl>
-                                    <FormMessage/>
                                     <p>{error}</p>
                                 </FormItem>
                             )}
@@ -133,4 +135,4 @@ finally {
     );
 }
 
-export default Signupform;
+export default SignUpForm

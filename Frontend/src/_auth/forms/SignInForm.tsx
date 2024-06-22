@@ -7,10 +7,14 @@ import axios from "axios";
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form.tsx";
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
+import toast from "react-hot-toast";
 
 
-function Signinform() {
+axios.defaults.withCredentials = true;
+
+function SignInForm() {
+
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [error2, setError2] = useState("")
@@ -21,14 +25,20 @@ function Signinform() {
             email: "",
         },
     })
+    const navigate = useNavigate();
     // 2. Define a submit handler.
     async function onSubmit(values: z.infer<typeof signInValidation>) {
         try{
             setLoading(true)
-            const data = await axios.post(`http://localhost:3000/api/v1/users/login`,values)
-            console.log(data)
+            const data = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/users/login`,values)
+
+            // const session = data.data.data.accessToken
+
+            toast.success(data.data.message)
+            navigate("/")
             setError("")
         }catch(e:any){
+            toast.error("User Login Failed")
             console.log(e)
             setLoading(false)
             const e1 =e.response.data.messages
@@ -100,4 +110,4 @@ function Signinform() {
     );
 }
 
-export default Signinform;
+export default SignInForm;
