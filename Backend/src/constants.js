@@ -2,6 +2,6 @@ export const DB_NAME = 'MERN-Dashboard-Challenge';
 const option ={
     httpOnly: true,
     secure: true,
-    SameSite: 'Strict',
+    sameSite: 'Strict',
 }
 export {option}
