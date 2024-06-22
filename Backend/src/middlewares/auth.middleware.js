@@ -8,7 +8,9 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     try{
         const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
         if (!token) {
-             new ApiError(400, "No token provided");
+           return res.status(400).send(
+             new ApiError(400, "No token provided")
+        )
         }
         const decodedToken = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
         const user = await User.findById(decodedToken?._id).select("-password -refreshToken")
